@@ -1,0 +1,81 @@
+name: Deploy Merilyen to InfinityFree
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get latest code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: intl, mbstring, mysqli
+          tools: composer
+
+      - name: Install Composer dependencies
+        run: composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+
+      - name: Prepare deploy folder
+        run: |
+          rm -rf deploy
+          mkdir -p deploy
+          mkdir -p deploy/ci
+
+          cp -R public/. deploy/
+          cp -R app deploy/ci/app
+          cp -R vendor deploy/ci/vendor
+          cp -R writable deploy/ci/writable
+
+          cat > deploy/ci/.env <<EOF
+          CI_ENVIRONMENT = production
+
+          app.baseURL = '${{ secrets.APP_BASE_URL }}'
+
+          database.default.hostname = ${{ secrets.DB_HOST }}
+          database.default.database = ${{ secrets.DB_NAME }}
+          database.default.username = ${{ secrets.DB_USER }}
+          database.default.password = '${{ secrets.DB_PASS }}'
+          database.default.DBDriver = MySQLi
+          database.default.DBPrefix =
+          database.default.port = 3306
+          EOF
+
+          cat > deploy/ci/.htaccess <<EOF
+          <IfModule authz_core_module>
+              Require all denied
+          </IfModule>
+
+          <IfModule !authz_core_module>
+              Deny from all
+          </IfModule>
+          EOF
+
+          php <<'PHP'
+          <?php
+          $file = 'deploy/index.php';
+          $content = file_get_contents($file);
+          $content = str_replace(
+              "FCPATH . '../app/Config/Paths.php'",
+              "FCPATH . 'ci/app/Config/Paths.php'",
+              $content
+          );
+          file_put_contents($file, $content);
+          PHP
+
+      - name: Deploy to InfinityFree
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./deploy/
+          server-dir: /htdocs/
