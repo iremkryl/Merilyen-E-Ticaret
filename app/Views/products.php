@@ -405,11 +405,11 @@
 							<li class="active-menu">
 								<a href="<?= base_url('/product') ?>">Ürünler</a>
 								<ul class="sub-menu">
-									<li><a href="product.html#kol">Kol Çantası</a></li>
-									<li><a href="product.html#capraz">Çapraz Çanta</a></li>
-									<li><a href="product.html#elcantasi">El Çantası</a></li>
-									<li><a href="product.html#sirtcantasi">Sırt Çantası</a></li>
-									<li><a href="product.html#yelek">Yelek</a></li>
+									<li><a href="product#kol">Kol Çantası</a></li>
+									<li><a href="product#capraz">Çapraz Çanta</a></li>
+									<li><a href="product#elcantasi">El Çantası</a></li>
+									<li><a href="product#sirtcantasi">Sırt Çantası</a></li>
+									<li><a href="product#yelek">Yelek</a></li>
 								</ul>
 							</li>
 
@@ -523,19 +523,33 @@
 
 			<ul class="main-menu-m">
 				<li>
-					<a href="index.html">Anasayfa</a>
+					<<a href="<?= base_url('/') ?>">Anasayfa</a>
 					<span class="arrow-main-menu-m">
 						<i class="fa fa-angle-right" aria-hidden="true"></i>
 					</span>
 				</li>
 
 				<li>
-					<a href="product.html">Ürünler</a>
-				<li><a href="product.html#kol">Kol Çantası</a></li>
-				<li><a href="product.html#capraz">Çapraz Çanta</a></li>
-				<li><a href="product.html#elcantasi">El Çantası</a></li>
-				<li><a href="product.html#sirtcantasi">Sırt Çantası</a></li>
-				<li><a href="product.html#yelek">Yelek</a></li>
+					<a href="<?= base_url('/products') ?>">Ürünler</a>
+						<li>
+							<a href="<?= base_url('/products?category=1') ?>">Kol Çantası</a>
+						</li>
+
+						<li>
+							<a href="<?= base_url('/products?category=2') ?>">Çapraz Çanta</a>
+						</li>
+
+						<li>
+							<a href="<?= base_url('/products?category=3') ?>">El Çantası</a>
+						</li>
+
+						<li>
+							<a href="<?= base_url('/products?category=4') ?>">Sırt Çantası</a>
+						</li>
+
+						<li>
+							<a href="<?= base_url('/products?category=5') ?>">Yelek</a>
+						</li>
 				</li>
 
 				<li>
@@ -543,15 +557,15 @@
 				</li>
 
 				<li>
-					<a href="blog.html">Blog</a>
+					<<a href="<?= base_url('/blog') ?>">Blog</a>
 				</li>
 
 				<li>
-					<a href="about.html">Hakkımızda</a>
+					<a href="<?= base_url('/about') ?>">Hakkımızda</a>
 				</li>
 
 				<li>
-					<a href="contact.html">İletişim</a>
+					<a href="<?= base_url('/contact') ?>">İletişim</a>
 				</li>
 			</ul>
 		</div>
@@ -883,31 +897,31 @@
 
 					<ul>
 						<li class="p-b-10">
-							<a href="product.html#kol" class="stext-107 cl7 hov-cl1 trans-04">
+							<a href="product#kol" class="stext-107 cl7 hov-cl1 trans-04">
 								Kol Çantası
 							</a>
 						</li>
 
 						<li class="p-b-10">
-							<a href="product.html#capraz" class="stext-107 cl7 hov-cl1 trans-04">
+							<a href="product#capraz" class="stext-107 cl7 hov-cl1 trans-04">
 								Çapraz Çanta
 							</a>
 						</li>
 
 						<li class="p-b-10">
-							<a href="product.html#elcantasi" class="stext-107 cl7 hov-cl1 trans-04">
+							<a href="product#elcantasi" class="stext-107 cl7 hov-cl1 trans-04">
 								El Çantası
 							</a>
 						</li>
 
 						<li class="p-b-10">
-							<a href="product.html#sirtcantasi" class="stext-107 cl7 hov-cl1 trans-04">
+							<a href="product#sirtcantasi" class="stext-107 cl7 hov-cl1 trans-04">
 								Sırt Çantası
 							</a>
 						</li>
 
 						<li class="p-b-10">
-							<a href="product.html#yelek" class="stext-107 cl7 hov-cl1 trans-04">
+							<a href="product#yelek" class="stext-107 cl7 hov-cl1 trans-04">
 								Yelekler (NEW)
 							</a>
 						</li>
