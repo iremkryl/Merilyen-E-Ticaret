@@ -171,6 +171,7 @@ $routes->group('admin', ['filter' => 'adminFilter'], static function ($routes) {
     $routes->get('orders', 'AdminController::orders');
     $routes->get('orders/detail/(:num)', 'AdminController::orderDetail/$1');
     $routes->post('orders/status/(:num)', 'AdminController::updateOrderStatus/$1');
+    $routes->post('orders/next/(:num)', 'AdminController::advanceOrderStatus/$1');
 
 
     /*

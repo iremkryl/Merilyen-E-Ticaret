@@ -197,6 +197,50 @@ class AdminController extends BaseController
         return redirect()->to('/admin/orders');
     }
 
+    public function advanceOrderStatus(int $id)
+    {
+        $db = \Config\Database::connect();
+
+        $order = $db->table('orders')
+            ->where('id', $id)
+            ->get()
+            ->getRowArray();
+
+        if (!$order) {
+            return redirect()->to('/admin/orders')->with('error', 'Sipariş bulunamadı.');
+        }
+
+        $currentStatus = (string)($order['status'] ?? 'pending');
+
+        $nextStatusMap = [
+            'pending'      => 'approved',
+            'approved'     => 'supplying',
+            'supplying'    => 'packing',
+            'packing'      => 'shipped',
+            'shipped'      => 'on_the_way',
+            'on_the_way'   => 'distributing',
+            'distributing' => 'delivered'
+        ];
+
+        if (!isset($nextStatusMap[$currentStatus])) {
+            return redirect()->to('/admin/orders')->with(
+                'error',
+                'Bu sipariş durumu ileri alınamaz.'
+            );
+        }
+
+        $db->table('orders')
+            ->where('id', $id)
+            ->update([
+                'status' => $nextStatusMap[$currentStatus]
+            ]);
+
+        return redirect()->to('/admin/orders')->with(
+            'success',
+            'Sipariş durumu bir sonraki aşamaya ilerletildi.'
+        );
+    }
+
     public function orderDetail(int $id)
     {
         $db = \Config\Database::connect();
