@@ -1,4 +1,3 @@
-````md
 # Merilyen E-Ticaret Sitesi
 
 Merilyen E-Ticaret Sitesi, CodeIgniter MVC frameworkü kullanılarak geliştirilmiş, içerik yönetim sistemine sahip web tabanlı bir alışveriş uygulamasıdır. Proje; ürün tanıtımı, ürün satışı, sepet yönetimi, sipariş oluşturma, ödeme simülasyonu, kullanıcı bakiye sistemi, admin paneli, blog/duyuru yönetimi ve kullanıcı hesap işlemlerini kapsamaktadır.
@@ -71,6 +70,17 @@ Not: Demo kullanıcı hesabı README içinde paylaşılmamıştır. Kullanıcı 
 
 ---
 
+## Demo Veri Bilgisi
+
+Veritabanı yedeğinde proje isterlerine uygun olarak en az:
+1 Admin
+5 User
+20 Ürün
+
+bulunacak şekilde örnek veri hazırlanmıştır.
+
+---
+
 ## Temel Özellikler
 
 ### Kullanıcı Özellikleri
@@ -124,7 +134,7 @@ Not: Demo kullanıcı hesabı README içinde paylaşılmamıştır. Kullanıcı 
 * Kullanıcı durumunu aktif/pasif/dondurulmuş yapma
 * Kullanıcı silme
 * Siparişi olan kullanıcıyı silmek yerine pasif hale getirme
-* Admin hesabını silme/pasif yapma işlemlerine karşı koruma
+* Admin hesabının silinmesini, pasif yapılmasını ve dondurulmasını engelleme
 * İletişim mesajlarını görüntüleme
 * Blog, duyuru ve ana duyuru içeriklerini yönetme
 * İçerik ekleme, düzenleme, silme ve aktif/pasif yapma
@@ -135,11 +145,9 @@ Not: Demo kullanıcı hesabı README içinde paylaşılmamıştır. Kullanıcı 
 
 Projede içerikler üç ana kategoriye ayrılmıştır:
 
-```text
 Ana Duyuru
 Duyuru
 Blog
-```
 
 * **Ana Duyuru:** Anasayfanın üst kısmındaki büyük slider alanında gösterilir.
 * **Duyuru:** Anasayfadaki küçük duyuru alanlarında ve duyuru listesinde kullanılır.
@@ -208,12 +216,10 @@ Projede kullanıcı bakiyesi bulunmaktadır. Sipariş oluşturulurken sistem ön
 
 Ödeme mantığı:
 
-```text
 1. Kullanıcının bakiyesi sipariş tutarını karşılıyorsa kart bilgisi istenmez.
 2. Kullanıcının bakiyesi sipariş tutarını karşılamıyorsa kalan tutar için kart ödeme alanı açılır.
 3. İptal edilen siparişlerin tutarı kredi kartına değil kullanıcı bakiyesine iade edilir.
 4. Sonraki alışverişte önce kullanıcı bakiyesi harcanır.
-```
 
 Kart ödeme alanında doğrulama kontrolleri yapılmaktadır:
 
@@ -406,18 +412,24 @@ http://localhost:8080
 
 ---
 
-## Canlı Ortam Notu
+## Canlı Ortam ve Yayınlama Notu
 
-Bu proje GitHub Pages ile çalıştırılamaz. Çünkü GitHub Pages yalnızca statik HTML, CSS ve JavaScript dosyalarını yayınlar. Bu proje ise PHP, CodeIgniter, MySQL, session, admin paneli ve veritabanı işlemleri kullanmaktadır.
+Bu proje PHP, CodeIgniter 4, MySQL, session yönetimi ve veritabanı işlemleri kullanan dinamik bir web uygulamasıdır. Bu nedenle yalnızca statik HTML/CSS/JavaScript dosyalarını yayınlayan GitHub Pages üzerinde çalıştırılamaz.
 
-Projeyi canlıya almak için PHP ve MySQL destekli bir hosting ortamı gerekir. Örneğin:
+Projenin canlı ortamda çalıştırılabilmesi için aşağıdaki özellikleri destekleyen bir sunucu gereklidir:
 
-* cPanel destekli PHP/MySQL hosting
-* Okul sunucusu
-* VPS
-* PHP ve MySQL destekli ücretsiz hosting servisleri
+- PHP desteği
+- MySQL veritabanı desteği
+- Veritabanı içe aktarma aracı, örneğin phpMyAdmin
+- CodeIgniter 4 çalıştırmaya uygun sunucu yapılandırması
 
-Canlı ortama alınırken `.env` dosyasında `app.baseURL` ve veritabanı bağlantı bilgileri hosting bilgilerine göre güncellenmelidir.
+Canlı ortama alınırken `.env` dosyasındaki `app.baseURL` değeri site adresine göre, veritabanı bağlantı bilgileri ise hosting üzerinde oluşturulan MySQL bilgilerine göre güncellenmelidir.
+
+Yerel geliştirme ve test sürecinde proje aşağıdaki komutla çalıştırılmıştır:
+
+```bash
+php spark serve
+```
 
 ---
 
@@ -498,12 +510,6 @@ Proje kapsamında aşağıdaki ana modüller tamamlanmıştır:
 
 ## Geliştirici
 
-```text
 İrem Karayel
 Bilişim Sistemleri Mühendisliği
 Kocaeli Üniversitesi
-```
-
-````
-6. Sonra **Push origin** de.
-7. GitHub web sayfasını yenile; README ana sayfada düzgün görünmeli.
