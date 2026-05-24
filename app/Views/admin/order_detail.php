@@ -113,6 +113,37 @@
             font-size: 16px;
         }
 
+        .invoice-header-box {
+            background: linear-gradient(135deg, #f7f2ff, #ffffff);
+            border: 1px solid #eee8ff;
+            border-radius: 14px;
+            padding: 14px 16px;
+            margin-bottom: 14px;
+        }
+
+        .invoice-no {
+            color: #717fe0;
+            font-weight: 800;
+            font-size: 18px;
+            margin-bottom: 4px;
+        }
+
+        .invoice-date {
+            color: #666;
+            font-size: 13px;
+        }
+
+        .invoice-note {
+            background: #fafafa;
+            border: 1px solid #eeeeee;
+            border-radius: 12px;
+            padding: 10px 12px;
+            color: #666;
+            font-size: 13px;
+            line-height: 1.5;
+            margin-top: 14px;
+        }
+
         .order-product-img {
             width: 70px;
             height: 70px;
@@ -153,6 +184,41 @@
                 text-align: left;
             }
         }
+
+        @media print {
+            .sidebar,
+            .no-print,
+            nav,
+            header,
+            footer {
+                display: none !important;
+            }
+
+            body {
+                background: white !important;
+            }
+
+            .content {
+                width: 100% !important;
+                max-width: 100% !important;
+                padding: 0 !important;
+            }
+
+            .info-card,
+            .table-card {
+                box-shadow: none !important;
+                border: 1px solid #dddddd !important;
+            }
+
+            .container-fluid,
+            .row,
+            .col-md-9,
+            .col-lg-10 {
+                width: 100% !important;
+                max-width: 100% !important;
+                flex: 0 0 100% !important;
+            }
+        }
     </style>
 </head>
 
@@ -191,7 +257,7 @@ if (!isset($items) || !is_array($items)) {
     $items = [];
 }
 
-$statusText = [
+$statusLabels = [
     'pending'      => 'Onay Bekliyor',
     'approved'     => 'Onaylandı',
     'supplying'    => 'Ürünler Tedarik Ediliyor',
@@ -217,23 +283,46 @@ $statusClass = [
     'cancelled'    => 'bg-danger'
 ];
 
-$paymentStatusText = [
+$paymentStatusLabels = [
     'paid'                => 'Ödendi',
     'refunded_to_balance' => 'Bakiyeye İade Edildi',
     'pending'             => 'Ödeme Bekliyor',
     'failed'              => 'Ödeme Başarısız'
 ];
 
-$currentStatus = (string)($order['status'] ?? 'pending');
-$currentPaymentStatus = (string)($order['payment_status'] ?? 'paid');
+$currentStatus = is_scalar($order['status'] ?? null)
+    ? (string)$order['status']
+    : 'pending';
 
-$orderId = (int)($order['id'] ?? 0);
+if (!array_key_exists($currentStatus, $statusLabels)) {
+    $currentStatus = 'pending';
+}
+
+$currentPaymentStatus = is_scalar($order['payment_status'] ?? null)
+    ? (string)$order['payment_status']
+    : 'paid';
+
+$orderId = is_numeric($order['id'] ?? null) ? (int)$order['id'] : 0;
+
 $userName = admin_order_html($order['user_name'] ?? '');
 $userSurname = admin_order_html($order['user_surname'] ?? '');
 $userEmail = admin_order_html($order['user_email'] ?? '');
 
-$orderCreatedAt = (string)($order['created_at'] ?? '');
-$orderDateText = $orderCreatedAt !== '' ? date('d.m.Y H:i', strtotime($orderCreatedAt)) : '-';
+$orderCreatedAtRaw = is_scalar($order['created_at'] ?? null)
+    ? (string)$order['created_at']
+    : '';
+
+$orderTimestamp = $orderCreatedAtRaw !== '' ? strtotime($orderCreatedAtRaw) : false;
+
+if ($orderTimestamp === false) {
+    $orderTimestamp = time();
+}
+
+$orderDateText = date('d.m.Y H:i', $orderTimestamp);
+
+$invoiceYear = date('Y', $orderTimestamp);
+$invoiceDate = date('d.m.Y H:i', $orderTimestamp);
+$invoiceNo = 'MER-' . $invoiceYear . '-' . str_pad((string)$orderId, 5, '0', STR_PAD_LEFT);
 
 $itemSubtotal = 0;
 
@@ -242,8 +331,10 @@ foreach ($items as $itemForTotal) {
         continue;
     }
 
-    $itemSubtotal += (is_numeric($itemForTotal['price'] ?? null) ? (float)$itemForTotal['price'] : 0)
-        * (is_numeric($itemForTotal['quantity'] ?? null) ? (int)$itemForTotal['quantity'] : 0);
+    $itemPrice = is_numeric($itemForTotal['price'] ?? null) ? (float)$itemForTotal['price'] : 0;
+    $itemQuantity = is_numeric($itemForTotal['quantity'] ?? null) ? (int)$itemForTotal['quantity'] : 0;
+
+    $itemSubtotal += $itemPrice * $itemQuantity;
 }
 
 $discountAmount = is_numeric($order['discount_amount'] ?? null) ? (float)$order['discount_amount'] : 0;
@@ -257,8 +348,13 @@ if ($calculatedShipping < 0) {
     $calculatedShipping = 0;
 }
 
-$couponCode = admin_order_html($order['coupon_code'] ?? '');
-$cardLast4 = admin_order_html($order['card_last4'] ?? '');
+$couponCodeRaw = is_scalar($order['coupon_code'] ?? null) ? (string)$order['coupon_code'] : '';
+$couponCode = admin_order_html($couponCodeRaw);
+
+$cardLast4Raw = is_scalar($order['card_last4'] ?? null) ? (string)$order['card_last4'] : '';
+$cardLast4 = admin_order_html($cardLast4Raw);
+
+$paymentStatusText = $paymentStatusLabels[$currentPaymentStatus] ?? 'Ödeme Bilgisi';
 ?>
 
 <div class="container-fluid">
@@ -279,7 +375,7 @@ $cardLast4 = admin_order_html($order['card_last4'] ?? '');
 
         <div class="col-md-9 col-lg-10 content">
 
-            <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-4 no-print">
                 <div>
                     <h2 class="fw-bold mb-1">
                         Sipariş Detayı #<?= (int)$orderId ?>
@@ -289,9 +385,17 @@ $cardLast4 = admin_order_html($order['card_last4'] ?? '');
                     </p>
                 </div>
 
-                <a href="<?= base_url('/admin/orders') ?>" class="btn btn-outline-secondary">
-                    Siparişlere Dön
-                </a>
+                <div class="d-flex gap-2">
+                    <a href="<?= base_url('/admin/orders/invoice/' . (int)$orderId) ?>"
+                    target="_blank"
+                    class="btn btn-outline-dark">
+                        Faturayı Görüntüle
+                    </a>
+
+                    <a href="<?= base_url('/admin/orders') ?>" class="btn btn-outline-secondary">
+                        Siparişlere Dön
+                    </a>
+                </div>
             </div>
 
             <div class="row">
@@ -314,7 +418,7 @@ $cardLast4 = admin_order_html($order['card_last4'] ?? '');
                         <p>
                             <strong>Sipariş Durumu:</strong><br>
                             <span class="badge <?= admin_order_html($statusClass[$currentStatus] ?? 'bg-info text-dark') ?>">
-                                <?= admin_order_html($statusText[$currentStatus] ?? $currentStatus) ?>
+                                <?= admin_order_html($statusLabels[$currentStatus] ?? $currentStatus) ?>
                             </span>
                         </p>
 
@@ -343,8 +447,41 @@ $cardLast4 = admin_order_html($order['card_last4'] ?? '');
 
                 <div class="col-lg-4 mb-4">
                     <div class="info-card">
-                        <h5 class="mini-title">Fatura / Ödeme Bilgileri</h5>
+                        <div class="d-flex justify-content-between align-items-start">
+                            <h5 class="mini-title mb-0">Fatura / Ödeme Özeti</h5>
+
+                            <a href="<?= base_url('/admin/orders/invoice/' . (int)$orderId) ?>"
+                            target="_blank"
+                            class="btn btn-sm btn-outline-dark no-print">
+                                Yazdır
+                            </a>
+                        </div>
+
                         <hr>
+
+                        <div class="invoice-header-box">
+                            <div class="invoice-no">
+                                <?= admin_order_html($invoiceNo) ?>
+                            </div>
+
+                            <div class="invoice-date">
+                                Fatura Tarihi: <?= admin_order_html($invoiceDate) ?>
+                            </div>
+                        </div>
+
+                        <div class="payment-row">
+                            <span class="payment-label">Fatura No</span>
+                            <span class="payment-value">
+                                <?= admin_order_html($invoiceNo) ?>
+                            </span>
+                        </div>
+
+                        <div class="payment-row">
+                            <span class="payment-label">Sipariş No</span>
+                            <span class="payment-value">
+                                #<?= (int)$orderId ?>
+                            </span>
+                        </div>
 
                         <div class="payment-row">
                             <span class="payment-label">Ürün Ara Toplamı</span>
@@ -398,7 +535,7 @@ $cardLast4 = admin_order_html($order['card_last4'] ?? '');
                         <div class="payment-row">
                             <span class="payment-label">Ödeme Durumu</span>
                             <span class="payment-value">
-                                <?= admin_order_html($paymentStatusText[$currentPaymentStatus] ?? $currentPaymentStatus) ?>
+                                <?= admin_order_html($paymentStatusText) ?>
                             </span>
                         </div>
 
@@ -411,6 +548,11 @@ $cardLast4 = admin_order_html($order['card_last4'] ?? '');
                                     Kart kullanılmadı
                                 <?php endif; ?>
                             </span>
+                        </div>
+
+                        <div class="invoice-note">
+                            Bu alan, proje kapsamında siparişe ait ödeme ve fatura özetini temsil eder.
+                            Admin bu bilgileri kontrol ederek siparişi hazırlık ve kargo sürecine alabilir.
                         </div>
                     </div>
                 </div>

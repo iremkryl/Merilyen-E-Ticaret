@@ -123,4 +123,61 @@ class OrderController extends BaseController
 
         return redirect()->to('/my-orders')->with('success', 'Sipariş teslim alındı olarak işaretlendi.');
     }
+
+    public function invoice(int $id)
+    {
+        $userId = session()->get('user_id');
+
+        if (!$userId) {
+            return redirect()->to('/login')->with('error', 'Faturayı görüntülemek için giriş yapmalısınız.');
+        }
+
+        $db = \Config\Database::connect();
+
+        $order = $db->table('orders o')
+            ->select('o.*, u.name as user_name, u.surname as user_surname, u.email as user_email')
+            ->join('users u', 'u.id = o.user_id', 'left')
+            ->where('o.id', $id)
+            ->where('o.user_id', $userId)
+            ->get()
+            ->getRowArray();
+
+        if (!$order) {
+            return redirect()->to('/my-orders')->with('error', 'Sipariş bulunamadı.');
+        }
+
+        $status = (string)($order['status'] ?? 'pending');
+
+        $allowedStatuses = [
+            'approved',
+            'supplying',
+            'packing',
+            'shipped',
+            'on_the_way',
+            'distributing',
+            'delivered',
+            'received'
+        ];
+
+        if (!in_array($status, $allowedStatuses, true)) {
+            if ($status === 'cancelled') {
+                return redirect()->to('/my-orders')->with('error', 'İptal edilen siparişler için fatura görüntülenemez.');
+            }
+
+            return redirect()->to('/my-orders')->with('error', 'Fatura, sipariş admin tarafından onaylandıktan sonra görüntülenebilir.');
+        }
+
+        $items = $db->table('order_items oi')
+            ->select('oi.*, p.name as product_name, p.image as product_image')
+            ->join('products p', 'p.id = oi.product_id', 'left')
+            ->where('oi.order_id', $id)
+            ->get()
+            ->getResultArray();
+
+        return view('orders/invoice', [
+            'order' => $order,
+            'items' => $items,
+            'viewer' => 'user'
+        ]);
+    }
 }

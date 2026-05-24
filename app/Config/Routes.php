@@ -126,6 +126,7 @@ $routes->get('/addresses/default/(:num)', 'AddressController::makeDefault/$1');
 $routes->get('/my-orders', 'OrderController::myOrders');
 $routes->get('/my-orders/cancel/(:num)', 'OrderController::cancel/$1');
 $routes->get('/my-orders/receive/(:num)', 'OrderController::receive/$1');
+$routes->get('/my-orders/invoice/(:num)', 'OrderController::invoice/$1');
 
 
 /*
@@ -170,9 +171,9 @@ $routes->group('admin', ['filter' => 'adminFilter'], static function ($routes) {
 
     $routes->get('orders', 'AdminController::orders');
     $routes->get('orders/detail/(:num)', 'AdminController::orderDetail/$1');
+    $routes->get('orders/invoice/(:num)', 'AdminController::invoice/$1');
     $routes->post('orders/status/(:num)', 'AdminController::updateOrderStatus/$1');
     $routes->post('orders/next/(:num)', 'AdminController::advanceOrderStatus/$1');
-
 
     /*
     |--------------------------------------------------------------------------

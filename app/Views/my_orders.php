@@ -1,23 +1,89 @@
 <?php
-$orders = $orders ?? [];
+if (!function_exists('my_orders_html')) {
+    /**
+     * @param mixed $value
+     */
+    function my_orders_html($value): string
+    {
+        if (is_string($value) || is_numeric($value)) {
+            return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+        }
+
+        return '';
+    }
+}
+
+if (!function_exists('my_orders_money')) {
+    /**
+     * @param mixed $value
+     */
+    function my_orders_money($value): string
+    {
+        return number_format(is_numeric($value) ? (float)$value : 0, 2) . ' ₺';
+    }
+}
+
+if (!function_exists('my_orders_date')) {
+    /**
+     * @param mixed $value
+     */
+    function my_orders_date($value): string
+    {
+        if (!is_string($value) && !is_numeric($value)) {
+            return '-';
+        }
+
+        $timestamp = strtotime((string)$value);
+
+        if ($timestamp === false) {
+            return '-';
+        }
+
+        return date('d.m.Y H:i', $timestamp);
+    }
+}
+
+if (!isset($orders) || !is_array($orders)) {
+    $orders = [];
+}
 
 $favCount = 0;
 $cartCount = 0;
 
-$cart = session()->get('cart') ?? [];
+$cartRaw = session()->get('cart');
+$cart = is_array($cartRaw) ? $cartRaw : [];
+
 foreach ($cart as $cartItem) {
-    $cartCount += (int)($cartItem['quantity'] ?? 0);
+    if (!is_array($cartItem)) {
+        continue;
+    }
+
+    $cartCount += is_numeric($cartItem['quantity'] ?? null)
+        ? (int)$cartItem['quantity']
+        : 0;
 }
 
 if (session()->get('isLoggedIn')) {
     $db = \Config\Database::connect();
 
-    $favCount = $db->table('favorites')
+    $favCount = (int)$db->table('favorites')
         ->where('user_id', session()->get('user_id'))
         ->countAllResults();
 }
 
-$userFullName = trim((string)(session()->get('user_name') . ' ' . session()->get('user_surname')));
+$userNameRaw = session()->get('user_name');
+$userSurnameRaw = session()->get('user_surname');
+
+$userName = is_scalar($userNameRaw) ? (string)$userNameRaw : '';
+$userSurname = is_scalar($userSurnameRaw) ? (string)$userSurnameRaw : '';
+
+$userFullName = trim($userName . ' ' . $userSurname);
+
+$successRaw = session()->getFlashdata('success');
+$errorRaw = session()->getFlashdata('error');
+
+$successMessage = is_scalar($successRaw) ? (string)$successRaw : '';
+$errorMessage = is_scalar($errorRaw) ? (string)$errorRaw : '';
 
 $statusText = [
     'pending'      => 'Onay Bekliyor',
@@ -43,6 +109,17 @@ $statusClass = [
     'delivered'    => 'badge-status badge-delivered',
     'received'     => 'badge-status badge-received',
     'cancelled'    => 'badge-status badge-cancelled'
+];
+
+$invoiceAllowedStatuses = [
+    'approved',
+    'supplying',
+    'packing',
+    'shipped',
+    'on_the_way',
+    'distributing',
+    'delivered',
+    'received'
 ];
 ?>
 
@@ -149,6 +226,21 @@ $statusClass = [
             border-radius: 20px;
             font-weight: 600;
             padding: 7px 13px;
+            margin: 2px;
+        }
+
+        .invoice-btn {
+            border-radius: 20px;
+            font-weight: 600;
+            padding: 7px 13px;
+            margin: 2px;
+        }
+
+        .order-action-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            align-items: center;
         }
 
         .mobile-order-card {
@@ -190,6 +282,13 @@ $statusClass = [
             word-break: break-word;
         }
 
+        .invoice-info-text {
+            display: inline-block;
+            color: #888;
+            font-size: 13px;
+            margin: 4px 0;
+        }
+
         @media (max-width: 991px) {
             .desktop-orders-table {
                 display: none;
@@ -202,6 +301,10 @@ $statusClass = [
             .order-page-actions {
                 justify-content: center;
             }
+
+            .order-action-stack {
+                justify-content: flex-start;
+            }
         }
 
         @media (max-width: 768px) {
@@ -213,6 +316,15 @@ $statusClass = [
                 max-width: 330px;
                 margin-left: auto;
                 margin-right: auto;
+            }
+
+            .mobile-order-row {
+                flex-direction: column;
+                gap: 4px;
+            }
+
+            .mobile-order-value {
+                text-align: left;
             }
         }
     </style>
@@ -233,7 +345,7 @@ $statusClass = [
 
                     <?php if (session()->get('isLoggedIn')): ?>
                         <a href="<?= base_url('/profile') ?>" class="flex-c-m trans-04 p-lr-25">
-                            <?= esc($userFullName ?: 'Profilim') ?>
+                            <?= my_orders_html($userFullName !== '' ? $userFullName : 'Profilim') ?>
                         </a>
 
                         <a href="<?= base_url('/logout') ?>" class="flex-c-m trans-04 p-lr-25">
@@ -299,14 +411,14 @@ $statusClass = [
                     <a href="<?= base_url('/favorites') ?>"
                        id="favoriteHeaderIcon"
                        class="icon-header-item cl2 hov-cl1 trans-04 p-l-22 p-r-11 icon-header-noti"
-                       data-notify="<?= $favCount ?>">
+                       data-notify="<?= (int)$favCount ?>">
                         <i class="zmdi zmdi-favorite-outline"></i>
                     </a>
 
                     <a href="<?= base_url('/cart') ?>"
                        id="cartHeaderIcon"
                        class="icon-header-item cl2 hov-cl1 trans-04 p-l-22 p-r-11 icon-header-noti"
-                       data-notify="<?= $cartCount ?>">
+                       data-notify="<?= (int)$cartCount ?>">
                         <i class="zmdi zmdi-shopping-cart"></i>
                     </a>
                 </div>
@@ -329,13 +441,13 @@ $statusClass = [
 
             <a href="<?= base_url('/favorites') ?>"
                class="dis-block icon-header-item cl2 hov-cl1 trans-04 p-r-11 p-l-10 icon-header-noti"
-               data-notify="<?= $favCount ?>">
+               data-notify="<?= (int)$favCount ?>">
                 <i class="zmdi zmdi-favorite-outline"></i>
             </a>
 
             <a href="<?= base_url('/cart') ?>"
                class="dis-block icon-header-item cl2 hov-cl1 trans-04 p-r-11 p-l-10 icon-header-noti"
-               data-notify="<?= $cartCount ?>">
+               data-notify="<?= (int)$cartCount ?>">
                 <i class="zmdi zmdi-shopping-cart"></i>
             </a>
         </div>
@@ -361,7 +473,7 @@ $statusClass = [
 
                     <?php if (session()->get('isLoggedIn')): ?>
                         <a href="<?= base_url('/profile') ?>" class="flex-c-m p-lr-10 trans-04">
-                            <?= esc($userFullName ?: 'Profilim') ?>
+                            <?= my_orders_html($userFullName !== '' ? $userFullName : 'Profilim') ?>
                         </a>
 
                         <a href="<?= base_url('/logout') ?>" class="flex-c-m p-lr-10 trans-04">
@@ -451,18 +563,18 @@ $statusClass = [
     </div>
 </div>
 
-<?php if (session()->getFlashdata('success')): ?>
+<?php if ($successMessage !== ''): ?>
     <div class="container p-t-25">
         <div class="alert alert-success" style="border-radius:14px;">
-            <?= session()->getFlashdata('success') ?>
+            <?= my_orders_html($successMessage) ?>
         </div>
     </div>
 <?php endif; ?>
 
-<?php if (session()->getFlashdata('error')): ?>
+<?php if ($errorMessage !== ''): ?>
     <div class="container p-t-25">
         <div class="alert alert-danger" style="border-radius:14px;">
-            <?= session()->getFlashdata('error') ?>
+            <?= my_orders_html($errorMessage) ?>
         </div>
     </div>
 <?php endif; ?>
@@ -476,7 +588,7 @@ $statusClass = [
             </h3>
 
             <p class="stext-102 cl6 p-t-10">
-                Sipariş durumlarınızı takip edebilir, uygun aşamadaki siparişleri iptal edebilir veya teslim aldığınızı onaylayabilirsiniz.
+                Sipariş durumlarınızı takip edebilir, uygun aşamadaki siparişleri iptal edebilir, faturanızı görüntüleyebilir veya teslim aldığınızı onaylayabilirsiniz.
             </p>
         </div>
 
@@ -510,70 +622,101 @@ $statusClass = [
                                 <th>Durum</th>
                                 <th>Adres</th>
                                 <th>Oluşturulma Tarihi</th>
-                                <th>İşlem</th>
+                                <th>Fatura</th>
                             </tr>
                         </thead>
 
                         <tbody>
                             <?php foreach ($orders as $order): ?>
                                 <?php
-                                $currentStatus = $order['status'] ?? 'pending';
+                                if (!is_array($order)) {
+                                    continue;
+                                }
+
+                                $currentStatus = is_scalar($order['status'] ?? null)
+                                    ? (string)$order['status']
+                                    : 'pending';
+
                                 $currentStatusText = $statusText[$currentStatus] ?? $currentStatus;
                                 $currentStatusClass = $statusClass[$currentStatus] ?? 'badge-status badge-process';
+
+                                $orderId = is_numeric($order['id'] ?? null) ? (int)$order['id'] : 0;
+                                $orderTotal = is_numeric($order['total_price'] ?? null) ? (float)$order['total_price'] : 0;
+                                $orderAddress = my_orders_html($order['shipping_address'] ?? '-');
+                                $orderDate = my_orders_date($order['created_at'] ?? null);
+                                $canViewInvoice = in_array($currentStatus, $invoiceAllowedStatuses, true);
                                 ?>
 
                                 <tr>
-                                    <td>#<?= esc((string)($order['id'] ?? '')) ?></td>
+                                    <td>#<?= (int)$orderId ?></td>
 
-                                    <td><?= number_format($order['total_price'] ?? 0, 2) ?> ₺</td>
+                                    <td><?= my_orders_money($orderTotal) ?></td>
 
                                     <td>
-                                        <span class="<?= $currentStatusClass ?>">
-                                            <?= esc((string)$currentStatusText) ?>
+                                        <span class="<?= my_orders_html($currentStatusClass) ?>">
+                                            <?= my_orders_html($currentStatusText) ?>
                                         </span>
                                     </td>
 
                                     <td class="order-address">
-                                        <?= esc((string)($order['shipping_address'] ?? '-')) ?>
+                                        <?= $orderAddress !== '' ? $orderAddress : '-' ?>
                                     </td>
 
                                     <td>
-                                        <?= !empty($order['created_at']) ? date('d.m.Y H:i', strtotime($order['created_at'])) : '-' ?>
+                                        <?= my_orders_html($orderDate) ?>
                                     </td>
 
                                     <td>
-                                        <?php if ($currentStatus === 'pending'): ?>
+                                        <div class="order-action-stack">
 
-                                            <a href="<?= base_url('/my-orders/cancel/' . $order['id']) ?>"
-                                               class="btn btn-sm btn-danger action-btn"
-                                               onclick="return confirm('Bu siparişi iptal etmek istediğinize emin misiniz? Tutar bakiyenize aktarılacaktır.')">
-                                                İptal Et
-                                            </a>
+                                            <?php if ($canViewInvoice): ?>
+                                                <a href="<?= base_url('/my-orders/invoice/' . $orderId) ?>"
+                                                target="_blank"
+                                                class="btn btn-sm btn-outline-dark invoice-btn">
+                                                    Fatura Göster
+                                                </a>
+                                            <?php elseif ($currentStatus === 'cancelled'): ?>
+                                                <span class="invoice-info-text">
+                                                    Fatura yok
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="invoice-info-text">
+                                                    Faturanız onaydan sonra aktif olacaktır.
+                                                    <br>
+                                                    Onaylanıncaya kadar, siparişinizi iptal edebilirsiniz.
+                                                </span>
+                                            <?php endif; ?>
 
-                                        <?php elseif ($currentStatus === 'delivered'): ?>
+                                            <?php if ($currentStatus === 'pending'): ?>
 
-                                            <a href="<?= base_url('/my-orders/receive/' . $order['id']) ?>"
-                                               class="btn btn-sm btn-success action-btn">
-                                                Teslim Aldım
-                                            </a>
+                                                <a href="<?= base_url('/my-orders/cancel/' . $orderId) ?>"
+                                                   class="btn btn-sm btn-danger action-btn"
+                                                   onclick="return confirm('Bu siparişi iptal etmek istediğinize emin misiniz? Tutar bakiyenize aktarılacaktır.')">
+                                                    İptal Et
+                                                </a>
 
-                                        <?php elseif ($currentStatus === 'received'): ?>
+                                            <?php elseif ($currentStatus === 'delivered'): ?>
 
-                                            <span class="badge-status badge-received">
-                                                Teslim Alındı
-                                            </span>
+                                                <a href="<?= base_url('/my-orders/receive/' . $orderId) ?>"
+                                                   class="btn btn-sm btn-success action-btn">
+                                                    Teslim Aldım
+                                                </a>
 
-                                        <?php elseif ($currentStatus === 'cancelled'): ?>
+                                            <?php elseif ($currentStatus === 'received'): ?>
 
-                                            <span class="badge-status badge-cancelled">
-                                                İptal Edildi
-                                            </span>
+                                                <span class="badge-status badge-received">
+                                                    Teslim Alındı
+                                                </span>
 
-                                        <?php else: ?>
+                                            <?php elseif ($currentStatus === 'cancelled'): ?>
 
-                                            <span class="text-muted">-</span>
+                                                <span class="badge-status badge-cancelled">
+                                                    İptal Edildi
+                                                </span>
 
-                                        <?php endif; ?>
+                                            <?php endif; ?>
+
+                                        </div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -585,46 +728,76 @@ $statusClass = [
             <div class="mobile-order-card">
                 <?php foreach ($orders as $order): ?>
                     <?php
-                    $currentStatus = $order['status'] ?? 'pending';
+                    if (!is_array($order)) {
+                        continue;
+                    }
+
+                    $currentStatus = is_scalar($order['status'] ?? null)
+                        ? (string)$order['status']
+                        : 'pending';
+
                     $currentStatusText = $statusText[$currentStatus] ?? $currentStatus;
                     $currentStatusClass = $statusClass[$currentStatus] ?? 'badge-status badge-process';
+
+                    $orderId = is_numeric($order['id'] ?? null) ? (int)$order['id'] : 0;
+                    $orderTotal = is_numeric($order['total_price'] ?? null) ? (float)$order['total_price'] : 0;
+                    $orderAddress = my_orders_html($order['shipping_address'] ?? '-');
+                    $orderDate = my_orders_date($order['created_at'] ?? null);
+                    $canViewInvoice = in_array($currentStatus, $invoiceAllowedStatuses, true);
                     ?>
 
                     <div class="mobile-order-item">
                         <div class="d-flex justify-content-between align-items-start m-b-15">
                             <div>
                                 <h5 class="mtext-102 cl2 m-b-4">
-                                    Sipariş #<?= esc((string)($order['id'] ?? '')) ?>
+                                    Sipariş #<?= (int)$orderId ?>
                                 </h5>
 
-                                <span class="<?= $currentStatusClass ?>">
-                                    <?= esc((string)$currentStatusText) ?>
+                                <span class="<?= my_orders_html($currentStatusClass) ?>">
+                                    <?= my_orders_html($currentStatusText) ?>
                                 </span>
                             </div>
 
                             <strong class="mtext-102 cl2">
-                                <?= number_format($order['total_price'] ?? 0, 2) ?> ₺
+                                <?= my_orders_money($orderTotal) ?>
                             </strong>
                         </div>
 
                         <div class="mobile-order-row">
                             <span class="mobile-order-label">Tarih</span>
                             <span class="mobile-order-value">
-                                <?= !empty($order['created_at']) ? date('d.m.Y H:i', strtotime($order['created_at'])) : '-' ?>
+                                <?= my_orders_html($orderDate) ?>
                             </span>
                         </div>
 
                         <div class="mobile-order-row">
                             <span class="mobile-order-label">Adres</span>
                             <span class="mobile-order-value" style="white-space:pre-line;">
-                                <?= esc((string)($order['shipping_address'] ?? '-')) ?>
+                                <?= $orderAddress !== '' ? $orderAddress : '-' ?>
                             </span>
                         </div>
 
-                        <div class="p-t-15">
+                        <div class="p-t-15 order-action-stack">
+
+                            <?php if ($canViewInvoice): ?>
+                                <a href="<?= base_url('/my-orders/invoice/' . $orderId) ?>"
+                                target="_blank"
+                                class="btn btn-sm btn-outline-dark invoice-btn">
+                                    Fatura Göster
+                                </a>
+                            <?php elseif ($currentStatus === 'cancelled'): ?>
+                                <span class="invoice-info-text">
+                                    Fatura yok
+                                </span>
+                            <?php else: ?>
+                                <span class="invoice-info-text">
+                                    Fatura onaydan sonra
+                                </span>
+                            <?php endif; ?>
+
                             <?php if ($currentStatus === 'pending'): ?>
 
-                                <a href="<?= base_url('/my-orders/cancel/' . $order['id']) ?>"
+                                <a href="<?= base_url('/my-orders/cancel/' . $orderId) ?>"
                                    class="btn btn-sm btn-danger action-btn"
                                    onclick="return confirm('Bu siparişi iptal etmek istediğinize emin misiniz? Tutar bakiyenize aktarılacaktır.')">
                                     İptal Et
@@ -632,7 +805,7 @@ $statusClass = [
 
                             <?php elseif ($currentStatus === 'delivered'): ?>
 
-                                <a href="<?= base_url('/my-orders/receive/' . $order['id']) ?>"
+                                <a href="<?= base_url('/my-orders/receive/' . $orderId) ?>"
                                    class="btn btn-sm btn-success action-btn">
                                     Teslim Aldım
                                 </a>
@@ -654,6 +827,7 @@ $statusClass = [
                                 <span class="text-muted">Bu aşamada kullanıcı işlemi bulunmuyor.</span>
 
                             <?php endif; ?>
+
                         </div>
                     </div>
                 <?php endforeach; ?>

@@ -269,6 +269,35 @@ class AdminController extends BaseController
         ]);
     }
 
+    public function invoice(int $id)
+    {
+        $db = \Config\Database::connect();
+
+        $order = $db->table('orders o')
+            ->select('o.*, u.name as user_name, u.surname as user_surname, u.email as user_email')
+            ->join('users u', 'u.id = o.user_id', 'left')
+            ->where('o.id', $id)
+            ->get()
+            ->getRowArray();
+
+        if (!$order) {
+            return redirect()->to('/admin/orders')->with('error', 'Sipariş bulunamadı.');
+        }
+
+        $items = $db->table('order_items oi')
+            ->select('oi.*, p.name as product_name, p.image as product_image')
+            ->join('products p', 'p.id = oi.product_id', 'left')
+            ->where('oi.order_id', $id)
+            ->get()
+            ->getResultArray();
+
+        return view('orders/invoice', [
+            'order' => $order,
+            'items' => $items,
+            'viewer' => 'admin'
+        ]);
+    }
+
     public function users()
     {
         $userModel = new UserModel();
